@@ -1,0 +1,71 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 848 >>
+stream
+BT
+/F2 28 Tf
+1 0 0 1 62 740 Tm
+(Akash Tiwary) Tj
+/F1 13 Tf
+1 0 0 1 62 691 Tm
+(Full Stack Developer  -  Seven Robotics  -  July 2023 to Present) Tj
+/F2 15 Tf
+1 0 0 1 62 653 Tm
+(This is a placeholder file.) Tj
+/F1 11 Tf
+1 0 0 1 62 611 Tm
+(Replace public/resume.pdf in this project with your real resume PDF,) Tj
+/F1 11 Tf
+1 0 0 1 62 592 Tm
+(keeping the same filename. Nothing else needs to change: every download) Tj
+/F1 11 Tf
+1 0 0 1 62 573 Tm
+(button on the site reads RESUME_URL from src/config/site.ts, which) Tj
+/F1 11 Tf
+1 0 0 1 62 554 Tm
+(points at /resume.pdf.) Tj
+/F1 11 Tf
+1 0 0 1 62 519 Tm
+(If you prefer a different filename or an external link, edit RESUME_URL) Tj
+/F1 11 Tf
+1 0 0 1 62 500 Tm
+(in src/config/site.ts instead.) Tj
+/F3 11 Tf
+1 0 0 1 62 465 Tm
+(Generated as part of the portfolio scaffold. It contains no resume data.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000261 00000 n 
+0000001160 00000 n 
+0000001230 00000 n 
+0000001305 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+1383
+%%EOF

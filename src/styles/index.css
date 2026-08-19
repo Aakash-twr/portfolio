@@ -1,0 +1,362 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Design tokens
+   --------------------------------------------------------------------------
+   Raw values live on :root (and are re-declared under [data-theme='light']),
+   then get mapped into Tailwind's theme with `@theme inline` so the generated
+   utilities emit `var(--raw-token)` directly. That is what lets a single
+   attribute swap on <html> retheme every utility without duplicating classes
+   with `dark:` variants.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces — a near-black base with three lifted steps. */
+  --raw-bg: #07080a;
+  --raw-surface: #0c0e12;
+  --raw-surface-2: #12151b;
+  --raw-inset: #050609;
+
+  /* Text */
+  --raw-fg: #f2f4f7;
+  --raw-fg-muted: #9aa3b0;
+  --raw-fg-subtle: #7c8593;
+
+  /* Lines */
+  --raw-line: #1b1f27;
+  --raw-line-strong: #2a3038;
+
+  /* Accent — one electric cyan, used for state, focus and emphasis only. */
+  --raw-accent: #00d3f2;
+  --raw-accent-hover: #55e4fb;
+  --raw-accent-ink: #04161b;
+  --raw-accent-soft: #00d3f21f;
+  --raw-accent-line: #00d3f24d;
+
+  /* Data-visualisation encodings. These are NOT UI accents — they exist so
+     architecture diagrams can distinguish concurrent flows semantically. */
+  --raw-viz-a: #00d3f2; /* retrieval / cache-hit path */
+  --raw-viz-b: #8b7cff; /* generation / async path  */
+  --raw-viz-c: #ffb257; /* slow / cache-miss path   */
+
+  /* 3D scene tones. Separate from the UI surfaces because a lit scene needs a
+     wider value range than a flat interface: floor, geometry and grid have to
+     read apart from each other under shading. */
+  --raw-scene-floor: #0e1116;
+  --raw-scene-rack: #2c333d;
+  --raw-scene-grid: #3a424e;
+  --raw-scene-body: #9aa5b4;
+
+  /* Elevation. Deliberately low-contrast: on near-black, glow reads better
+     than drop shadow. */
+  --raw-shadow-card: 0 1px 0 0 #ffffff0a inset, 0 24px 60px -30px #000000cc;
+  --raw-grid: #ffffff08;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --raw-bg: #fbfbfa;
+  --raw-surface: #ffffff;
+  --raw-surface-2: #f4f5f3;
+  --raw-inset: #eceeea;
+
+  --raw-fg: #14161a;
+  --raw-fg-muted: #565c66;
+  --raw-fg-subtle: #62686f;
+
+  --raw-line: #e3e5e0;
+  --raw-line-strong: #cfd2cc;
+
+  --raw-accent: #0a7c92;
+  --raw-accent-hover: #086172;
+  --raw-accent-ink: #ffffff;
+  --raw-accent-soft: #0a7c9214;
+  --raw-accent-line: #0a7c9240;
+
+  --raw-viz-a: #0a7c92;
+  --raw-viz-b: #5b4cd6;
+  --raw-viz-c: #b06504;
+
+  --raw-scene-floor: #e7e9e5;
+  --raw-scene-rack: #b9bdb6;
+  --raw-scene-grid: #a8ada5;
+  --raw-scene-body: #5c626a;
+
+  --raw-shadow-card: 0 1px 2px 0 #14161a0d, 0 12px 32px -18px #14161a1f;
+  --raw-grid: #14161a0a;
+}
+
+@theme inline {
+  --color-bg: var(--raw-bg);
+  --color-surface: var(--raw-surface);
+  --color-surface-2: var(--raw-surface-2);
+  --color-inset: var(--raw-inset);
+
+  --color-fg: var(--raw-fg);
+  --color-fg-muted: var(--raw-fg-muted);
+  --color-fg-subtle: var(--raw-fg-subtle);
+
+  --color-line: var(--raw-line);
+  --color-line-strong: var(--raw-line-strong);
+
+  --color-accent: var(--raw-accent);
+  --color-accent-hover: var(--raw-accent-hover);
+  --color-accent-ink: var(--raw-accent-ink);
+  --color-accent-soft: var(--raw-accent-soft);
+  --color-accent-line: var(--raw-accent-line);
+
+  --color-viz-a: var(--raw-viz-a);
+  --color-viz-b: var(--raw-viz-b);
+  --color-viz-c: var(--raw-viz-c);
+
+  --shadow-card: var(--raw-shadow-card);
+
+  --font-sans: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+  --font-editorial: 'Instrument Serif', ui-serif, Georgia, serif;
+
+  /* A display ramp that stays readable at 375px without media queries. */
+  --text-display: clamp(2.75rem, 8vw, 5.75rem);
+  --text-display--line-height: 0.94;
+  --text-display--letter-spacing: -0.035em;
+  --text-headline: clamp(1.9rem, 4.2vw, 3rem);
+  --text-headline--line-height: 1.06;
+  --text-headline--letter-spacing: -0.025em;
+  --text-title: clamp(1.25rem, 2vw, 1.6rem);
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.015em;
+  --text-lede: clamp(1.0625rem, 1.5vw, 1.3125rem);
+  --text-lede--line-height: 1.55;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.4;
+  --text-micro--letter-spacing: 0.14em;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-pulse-ring: pulse-ring 2.4s var(--ease-out-quint) infinite;
+  --animate-dash: dash 1.6s linear infinite;
+  --animate-rise: rise 0.75s var(--ease-out-expo) both;
+  --animate-panel-in: panel-in 0.3s var(--ease-out-expo) both;
+  --animate-sheet-in: sheet-in 0.22s var(--ease-out-quint) both;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.75;
+  }
+  70%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Hero entrance. Applied with a per-element animation-delay. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Tab-panel swap. The panel is keyed on the active id, so a change remounts it
+   and replays this. Enter-only by design: an exit animation on a tab switch just
+   adds latency between the click and the new content. */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  * {
+    border-color: var(--raw-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Anchored sections must clear the fixed header. */
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    background-color: var(--raw-bg);
+    color: var(--raw-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Guards against layout shift when the ⌘K dialog locks scrolling. */
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--raw-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Remove the outline only where a custom focus ring is drawn instead. */
+  [data-focus-ring='custom']:focus-visible {
+    outline: none;
+  }
+
+  ::selection {
+    background-color: var(--raw-accent);
+    color: var(--raw-accent-ink);
+  }
+
+  svg {
+    display: block;
+  }
+
+  /* Honour the OS-level motion preference globally, not just per component. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Scroll reveal
+   --------------------------------------------------------------------------
+   A transition rather than an animation: the element holds its pre-reveal state
+   until an IntersectionObserver marks it visible, so nothing can animate before
+   it is on screen. Both animated properties are compositor-friendly.
+   ========================================================================== */
+
+@layer components {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(var(--reveal-y, 14px));
+    transition:
+      opacity 0.6s var(--ease-out-expo),
+      transform 0.6s var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0s);
+  }
+
+  [data-reveal][data-visible] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Belt-and-braces: the component already skips the attribute under reduced
+     motion, but if it is ever rendered anyway, content must still be visible. */
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* ==========================================================================
+   Composite utilities
+   ========================================================================== */
+
+@utility container-page {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+
+  @media (width >= 48rem) {
+    padding-inline: 2.5rem;
+  }
+
+  @media (width >= 80rem) {
+    padding-inline: 3rem;
+  }
+}
+
+/* The blueprint lattice used behind the hero and section dividers. */
+@utility bg-lattice {
+  background-image:
+    linear-gradient(to right, var(--raw-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--raw-grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility text-gradient-fg {
+  background-image: linear-gradient(
+    170deg,
+    var(--raw-fg) 20%,
+    color-mix(in oklab, var(--raw-fg) 55%, var(--raw-bg)) 92%
+  );
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* A 1px hairline that reads as a border but can sit over the grid. */
+@utility hairline {
+  box-shadow: 0 0 0 1px var(--raw-line);
+}
+
+@utility mono-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+
+    <title>Akash Tiwary — Full Stack Developer | React, TypeScript, Real-Time Systems</title>
+    <meta
+      name="description"
+      content="Akash Tiwary is a Full Stack Developer at Seven Robotics building production React + TypeScript interfaces and the real-time Node.js systems behind them — WebSockets, WebRTC, RabbitMQ, Redis and AWS — for autonomous mobile robots and fleet management."
+    />
+    <meta name="author" content="Akash Tiwary" />
+    <meta
+      name="keywords"
+      content="Akash Tiwary, Full Stack Developer, React, TypeScript, Node.js, real-time systems, WebSockets, WebRTC, Socket.IO, RabbitMQ, Redis, AWS, Docker, LangGraph, portfolio"
+    />
+    <link rel="canonical" href="https://akashtiwary.dev/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Akash Tiwary" />
+    <meta property="og:title" content="Akash Tiwary — Full Stack Developer" />
+    <meta
+      property="og:description"
+      content="Production React + TypeScript interfaces and the real-time Node.js systems behind them. Currently building software for autonomous mobile robots at Seven Robotics."
+    />
+    <meta property="og:url" content="https://akashtiwary.dev/" />
+    <meta property="og:image" content="https://akashtiwary.dev/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Akash Tiwary — Full Stack Developer" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Akash Tiwary — Full Stack Developer" />
+    <meta
+      name="twitter:description"
+      content="Production React + TypeScript interfaces and the real-time Node.js systems behind them."
+    />
+    <meta name="twitter:image" content="https://akashtiwary.dev/og-image.png" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#07080a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)" />
+
+    <!--
+      Fonts: preconnect first so the CSS request and the font files it triggers do
+      not each pay a fresh connection. `display=swap` keeps first paint unblocked.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+
+    <!--
+      Theme bootstrap. Runs before first paint so a returning visitor who chose
+      light mode never sees a dark flash. Dark is the default.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.dataset.theme = stored;
+          }
+        } catch (e) {
+          /* private mode — keep the dark default */
+        }
+      })();
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Akash Tiwary",
+        "jobTitle": "Full Stack Developer",
+        "url": "https://akashtiwary.dev/",
+        "email": "mailto:tiwaryakash0308@gmail.com",
+        "worksFor": { "@type": "Organization", "name": "Seven Robotics" },
+        "knowsAbout": [
+          "React.js",
+          "TypeScript",
+          "Node.js",
+          "Real-time systems",
+          "WebRTC",
+          "WebSockets",
+          "RabbitMQ",
+          "Redis",
+          "AWS",
+          "Docker",
+          "LangChain",
+          "LangGraph"
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="padding: 3rem 1.5rem; font-family: system-ui, sans-serif; color: #f2f4f7">
+        <h1>Akash Tiwary — Full Stack Developer</h1>
+        <p>
+          Full Stack Developer at Seven Robotics (July 2023 – present) building production
+          React 18 + TypeScript interfaces and real-time Node.js systems for autonomous
+          mobile robots and fleet management.
+        </p>
+        <p>
+          This portfolio uses JavaScript for its interactive architecture diagrams. Reach me
+          at <a href="mailto:tiwaryakash0308@gmail.com">tiwaryakash0308@gmail.com</a> or
+          download <a href="/resume.pdf">my resume</a>.
+        </p>
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
