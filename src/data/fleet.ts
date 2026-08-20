@@ -90,6 +90,15 @@ export const fleet: readonly RobotSpec[] = [
   },
 ];
 
+/**
+ * Deterministic hash-based pseudo-random. The warehouse must look identical on
+ * every load and between themes, so nothing here may use Math.random().
+ */
+function noise(seed: number): number {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 /** Storage racks, laid out as three aisles of three bays. */
 export const racks: readonly { x: number; z: number; w: number; d: number; h: number }[] =
   Array.from({ length: 9 }, (_, index) => {
@@ -103,6 +112,37 @@ export const racks: readonly { x: number; z: number; w: number; d: number; h: nu
       h: 1.05 + ((aisle + bay) % 3) * 0.35,
     };
   });
+
+export type Crate = {
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  rotation: number;
+  /** Index into the crate colour ramp. */
+  tint: number;
+};
+
+/**
+ * Pallets stacked on the racks. Derived from the rack layout rather than authored,
+ * and rendered as a single InstancedMesh — ~40 boxes in one draw call, which is
+ * the whole reason there can be this many of them.
+ */
+export const crates: readonly Crate[] = racks.flatMap((rack, rackIndex) => {
+  const perRack = 3 + Math.floor(noise(rackIndex * 3.1) * 3);
+  return Array.from({ length: perRack }, (_, i) => {
+    const seed = rackIndex * 17 + i * 5;
+    const size = 0.42 + noise(seed) * 0.3;
+    return {
+      x: rack.x + (noise(seed + 1) - 0.5) * (rack.w - size - 0.1),
+      y: rack.h + size / 2,
+      z: rack.z + (noise(seed + 2) - 0.5) * (rack.d - size - 0.2),
+      size,
+      rotation: (noise(seed + 3) - 0.5) * 0.5,
+      tint: Math.floor(noise(seed + 4) * 3),
+    };
+  });
+});
 
 export const FLOOR_SIZE = 22;
 export const LANE = 2.4;

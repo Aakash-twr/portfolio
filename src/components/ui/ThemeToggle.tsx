@@ -16,7 +16,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
       title={`Switch to ${isDark ? 'light' : 'dark'} theme`}
-      className="group inline-flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-fg-muted transition-colors duration-200 hover:border-accent-line hover:text-accent"
+      className="nav-icon-btn w-9"
     >
       {isDark ? (
         <Sun size={15} strokeWidth={1.75} aria-hidden="true" />

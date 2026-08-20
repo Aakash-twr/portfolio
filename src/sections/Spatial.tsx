@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useState } from 'react';
+import { Suspense, lazy, useCallback, useRef, useState } from 'react';
 import { Box, MousePointerClick, Rotate3d, Zap } from 'lucide-react';
 import { Section } from '@/components/ui/Section';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -24,7 +24,7 @@ const STATUS_DOT = ['bg-viz-a', 'bg-viz-b', 'bg-viz-c'] as const;
 const HINTS = {
   fine: [
     { icon: Rotate3d, label: 'Drag to orbit' },
-    { icon: Box, label: 'Scroll to zoom' },
+    { icon: Box, label: 'Click, then scroll to zoom' },
     { icon: MousePointerClick, label: 'Click a unit' },
   ],
   coarse: [
@@ -38,6 +38,8 @@ export function Spatial() {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const coarsePointer = useMediaQuery('(pointer: coarse)');
+  // Four floating labels need room; below this only the selected unit is labelled.
+  const wideStage = useMediaQuery('(min-width: 640px)');
   const [launched, setLaunched] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>('AMR-01');
 
@@ -62,6 +64,21 @@ export function Spatial() {
 
   const handleSelect = useCallback((id: string | null) => setSelectedId(id), []);
 
+  /*
+    Live renderer readout. The viewer writes into these nodes directly rather than
+    lifting per-frame numbers into React state — the same reason the 3D labels are
+    driven by style mutations. A ref map keeps the panel's markup here, where it
+    belongs, while the values come from inside the render loop.
+  */
+  const statsRef = useRef<Map<string, HTMLElement>>(new Map());
+  const bindStat = useCallback(
+    (key: string) => (node: HTMLElement | null) => {
+      if (node) statsRef.current.set(key, node);
+      else statsRef.current.delete(key);
+    },
+    [],
+  );
+
   return (
     <Section id="spatial" className="container-page py-24 sm:py-32">
       <SectionHeading
@@ -80,7 +97,7 @@ export function Spatial() {
           >
             <div
               ref={setStageRef}
-              className="relative aspect-4/3 w-full sm:aspect-video lg:aspect-4/3 xl:aspect-video"
+              className="relative aspect-4/3 w-full sm:aspect-video lg:aspect-4/3 xl:aspect-16/10"
             >
               {shouldLoad ? (
                 <Suspense
@@ -97,6 +114,8 @@ export function Spatial() {
                     animate={!reduceMotion}
                     selectedId={selectedId}
                     onSelect={handleSelect}
+                    compactLabels={!wideStage}
+                    stats={statsRef}
                   />
                 </Suspense>
               ) : (
@@ -197,30 +216,97 @@ export function Spatial() {
             </div>
           </div>
 
-          {/* The part a reviewing engineer will care about. */}
-          <div className="mt-4 rounded-xl border border-line bg-surface p-5">
-            <h3 className="mono-label text-fg-subtle">How it is loaded</h3>
-            <ul className="mt-3 space-y-2.5 text-[0.8125rem] leading-relaxed text-fg-muted">
-              <li>
-                <span className="text-fg">Code-split behind one boundary.</span> three.js and
-                React Three Fiber are absent from the initial bundle entirely.
-              </li>
-              <li>
-                <span className="text-fg">Loop released, not hidden.</span> Scrolling past sets{' '}
-                <code className="font-mono text-[0.75rem] text-fg-muted">frameloop=&quot;never&quot;</code>{' '}
-                — the GPU stops rather than rendering invisible frames.
-              </li>
-              <li>
-                <span className="text-fg">Adaptive resolution.</span> DPR is capped, then dropped
-                automatically on sustained frame decline instead of tearing.
-              </li>
-              <li>
-                <span className="text-fg">Gesture-gated on mobile and Save-Data.</span> No
-                megabyte spent on a metered connection without being asked.
-              </li>
-            </ul>
-          </div>
+          {/* Live instrumentation. It fills the rail honestly — and it is the only
+              way to actually show, rather than assert, that the scene is cheap. */}
+          {shouldLoad && (
+            <div className="mt-4 rounded-xl border border-line bg-surface p-5">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="mono-label text-fg-subtle">Renderer</h3>
+                <span className="font-mono text-[0.6875rem] text-fg-subtle">live</span>
+              </div>
+              <dl className="mt-4 space-y-2">
+                {(
+                  [
+                    ['fps', 'frames / s'],
+                    ['calls', 'draw calls'],
+                    ['triangles', 'triangles'],
+                    ['dpr', 'pixel ratio'],
+                    ['quality', 'quality tier'],
+                    ['effects', 'effects'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key} className="flex items-baseline justify-between gap-3">
+                    <dt className="text-[0.8125rem] text-fg-muted">{label}</dt>
+                    <dd
+                      ref={bindStat(key)}
+                      className="font-mono text-[0.8125rem] tabular-nums text-fg"
+                    >
+                      &mdash;
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </Reveal>
+      </div>
+
+      {/*
+        These read at ~600px, not in a 300px rail. In the rail they were 830px of
+        stacked prose beside a 450px viewer, which left most of a screen of dead
+        space under the scene.
+      */}
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-line bg-surface p-5">
+          <h3 className="mono-label text-fg-subtle">How it is built</h3>
+          <ul className="mt-3 space-y-2.5 text-[0.8125rem] leading-relaxed text-fg-muted">
+            <li>
+              <span className="text-fg">Grid is a patched shader, not a helper.</span> GLSL
+              injected into <code className="font-mono text-[0.75rem]">MeshStandardMaterial</code>{' '}
+              via <code className="font-mono text-[0.75rem]">onBeforeCompile</code>, so it keeps
+              three&rsquo;s lighting and shadows while <code className="font-mono text-[0.75rem]">fwidth</code>{' '}
+              holds every line at ~1px from any distance or angle.
+            </li>
+            <li>
+              <span className="text-fg">Racks and pallets are instanced.</span> Two{' '}
+              <code className="font-mono text-[0.75rem]">InstancedMesh</code> draw calls with
+              per-instance transforms and colours, instead of ~50 meshes.
+            </li>
+            <li>
+              <span className="text-fg">Bloom is real HDR.</span> An EffectComposer rendering
+              into a half-float MSAA target, so emissive beacons above 1.0 bloom before tone
+              mapping is applied — by an OutputPass at the end of the chain.
+            </li>
+            <li>
+              <span className="text-fg">Labels are DOM, projected by hand.</span> World positions
+              are projected to screen space each frame and written straight to style transforms.
+              Crisp text, no React render per frame.
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-xl border border-line bg-surface p-5">
+          <h3 className="mono-label text-fg-subtle">How it is loaded</h3>
+          <ul className="mt-3 space-y-2.5 text-[0.8125rem] leading-relaxed text-fg-muted">
+            <li>
+              <span className="text-fg">Code-split behind one boundary.</span> three.js and React
+              Three Fiber are absent from the initial bundle entirely.
+            </li>
+            <li>
+              <span className="text-fg">Loop released, not hidden.</span> Scrolling past sets{' '}
+              <code className="font-mono text-[0.75rem]">frameloop=&quot;never&quot;</code> — the
+              GPU stops rather than rendering invisible frames.
+            </li>
+            <li>
+              <span className="text-fg">Quality degrades in stages.</span> Under sustained frame
+              decline it drops bloom first, then resolution. Frames are the last thing to give up.
+            </li>
+            <li>
+              <span className="text-fg">Gesture-gated on mobile and Save-Data.</span> No megabyte
+              spent on a metered connection without being asked.
+            </li>
+          </ul>
+        </div>
       </div>
 
       <Reveal delay={0.08}>

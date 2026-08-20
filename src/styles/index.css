@@ -44,15 +44,23 @@
   /* 3D scene tones. Separate from the UI surfaces because a lit scene needs a
      wider value range than a flat interface: floor, geometry and grid have to
      read apart from each other under shading. */
-  --raw-scene-floor: #0e1116;
-  --raw-scene-rack: #2c333d;
-  --raw-scene-grid: #3a424e;
-  --raw-scene-body: #9aa5b4;
+  --raw-scene-floor: #111519;
+  --raw-scene-rack: #3b4450;
+  --raw-scene-grid: #47515f;
+  --raw-scene-body: #a6b1bf;
 
   /* Elevation. Deliberately low-contrast: on near-black, glow reads better
      than drop shadow. */
   --raw-shadow-card: 0 1px 0 0 #ffffff0a inset, 0 24px 60px -30px #000000cc;
   --raw-grid: #ffffff08;
+
+  /* Floating pill header. Its legibility comes from a backdrop blur rather than
+     an opaque fill, so the page keeps reading through it — which only works if
+     the fill stays well under full opacity. */
+  --raw-nav-bg: color-mix(in srgb, #0b0d11 62%, transparent);
+  --raw-nav-line: color-mix(in srgb, #f2f4f7 14%, transparent);
+  --raw-nav-shadow: 0 18px 44px -26px #000000e6;
+  --raw-nav-hover: color-mix(in srgb, #f2f4f7 10%, transparent);
 }
 
 [data-theme='light'] {
@@ -87,6 +95,11 @@
 
   --raw-shadow-card: 0 1px 2px 0 #14161a0d, 0 12px 32px -18px #14161a1f;
   --raw-grid: #14161a0a;
+
+  --raw-nav-bg: color-mix(in srgb, #ffffff 72%, transparent);
+  --raw-nav-line: color-mix(in srgb, #14161a 10%, transparent);
+  --raw-nav-shadow: 0 18px 44px -28px #14161a38;
+  --raw-nav-hover: color-mix(in srgb, #14161a 6%, transparent);
 }
 
 @theme inline {
@@ -134,6 +147,10 @@
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1.4;
   --text-micro--letter-spacing: 0.14em;
+
+  /* The pill header swaps to its mobile arrangement here rather than at `xl`,
+     because 1200px is where both nav groups plus the wordmark stop fitting. */
+  --breakpoint-navbar: 75rem;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
@@ -359,4 +376,228 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 500;
+}
+
+/* ==========================================================================
+   Floating pill header
+   --------------------------------------------------------------------------
+   Geometry, motion curves and thresholds are ported from vantara.in, whose
+   header is the reference for this component: a centre-anchored capsule with
+   the wordmark flanked by two navigation groups.
+
+   The measurements are deliberately literal (24px underline, -4px offset,
+   18x2px burger bars, 14px blur) because they are what make the original read
+   as precise rather than merely rounded.
+   ========================================================================== */
+
+@layer components {
+  .nav-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 14px 24px;
+    border: 1px solid var(--raw-nav-line);
+    background: var(--raw-nav-bg);
+    box-shadow: var(--raw-nav-shadow);
+
+    /* The backdrop blur is declared on this element by the component, and a
+       backdrop-filter is clipped to its own border box — so the radius has to
+       live here too, or the blur renders as a rectangle behind rounded ends. */
+    border-radius: 40px;
+  }
+
+  @media (width >= 48rem) {
+    .nav-pill {
+      padding: 20px 28px;
+    }
+  }
+
+  /* The nav groups and the wordmark are held apart by a fixed gap rather than
+     by `space-between` alone, so the capsule grows symmetrically. */
+  .nav-pill-nav {
+    gap: 48px;
+  }
+
+  /* Below this the capsule would be wider than the viewport. */
+  @media (width < 25rem) {
+    .nav-pill-nav {
+      gap: 20px;
+    }
+  }
+
+  @media (width >= 48rem) {
+    .nav-pill-nav {
+      gap: 60px;
+    }
+  }
+
+  @media (width >= 75rem) {
+    .nav-pill-nav {
+      gap: 48px;
+    }
+  }
+
+  /* The actions capsule holds icon buttons, which need proximity, not air. */
+  .nav-pill-actions {
+    gap: 8px;
+    padding-inline: 14px;
+  }
+
+  .nav-group {
+    position: relative;
+    display: none;
+    align-items: center;
+    height: 100%;
+  }
+
+  @media (width >= 75rem) {
+    .nav-group {
+      display: flex;
+    }
+  }
+
+  .nav-group-right {
+    justify-content: flex-end;
+  }
+
+  .nav-list {
+    display: flex;
+    gap: 16px;
+  }
+
+  .nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    letter-spacing: 0.28px;
+    color: var(--raw-fg-muted);
+    transition: color 0.125s linear;
+  }
+
+  /* A 14px label is a poor tap target, so the span carries an invisible
+     -12px/-20px inset that does the catching. */
+  .nav-link > span {
+    position: relative;
+  }
+
+  .nav-link > span::before {
+    content: '';
+    position: absolute;
+    inset: -12px -20px;
+  }
+
+  /* The active marker is a fixed 24px hairline that wipes out from the centre —
+     not a bar sized to the label. It reads as a mark, not as a highlight. */
+  .nav-link::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    bottom: -4px;
+    left: 50%;
+    width: 24px;
+    height: 1px;
+    background-color: var(--raw-accent);
+    opacity: 0;
+    transform: translateX(-50%) scaleX(0);
+    transition:
+      opacity 0.125s linear,
+      transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  @media (hover: hover) {
+    .nav-link:hover {
+      color: var(--raw-fg);
+    }
+  }
+
+  .nav-link:active,
+  .nav-link[aria-current='true'] {
+    color: var(--raw-fg);
+  }
+
+  .nav-link[aria-current='true']::before {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  /* Controls inside the capsule carry no border and no fill at rest, so it
+     reads as one surface rather than as a tray holding buttons. */
+  .nav-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    border-radius: 999px;
+    color: var(--raw-fg-muted);
+    transition:
+      background-color 0.2s linear,
+      color 0.2s linear;
+  }
+
+  .nav-icon-btn:hover {
+    background-color: var(--raw-nav-hover);
+    color: var(--raw-fg);
+  }
+
+  /* Two bars that fold into a cross — no third bar to fade out. */
+  .nav-burger {
+    position: relative;
+    display: flex;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--raw-fg-muted);
+    cursor: pointer;
+    transition: color 0.2s linear;
+  }
+
+  .nav-burger:hover {
+    color: var(--raw-fg);
+  }
+
+  .nav-burger-inner {
+    position: relative;
+    width: 24px;
+    height: 24px;
+  }
+
+  .nav-burger-bar {
+    position: absolute;
+    left: 3px;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    transition: transform 0.3s;
+  }
+
+  .nav-burger-bar:first-child {
+    top: 8px;
+    transform-origin: top;
+  }
+
+  .nav-burger-bar:last-child {
+    top: 14px;
+    transform-origin: bottom;
+  }
+
+  .nav-burger[aria-expanded='true'] .nav-burger-bar:first-child {
+    transform: rotate(45deg) translate(3px, 1px);
+  }
+
+  .nav-burger[aria-expanded='true'] .nav-burger-bar:last-child {
+    transform: rotate(-45deg) translate(3px, -2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-link::before,
+    .nav-burger-bar {
+      transition-duration: 0.01ms;
+    }
+  }
 }

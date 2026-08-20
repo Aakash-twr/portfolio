@@ -274,11 +274,11 @@ export function CommandMenu() {
       }}
       aria-haspopup="dialog"
       aria-expanded={open}
-      className="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface pr-2 pl-3 text-fg-muted transition-colors duration-200 hover:border-accent-line hover:text-fg"
+      className="nav-icon-btn gap-2 pr-2 pl-3"
     >
       <Search size={13} strokeWidth={1.75} aria-hidden="true" />
       <span className="text-[0.8125rem]">Jump to</span>
-      <kbd className="ml-1 hidden rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[0.625rem] text-fg-subtle sm:inline-block">
+      <kbd className="ml-1 hidden rounded border border-[var(--raw-nav-line)] px-1.5 py-0.5 font-mono text-[0.625rem] text-fg-subtle sm:inline-block">
         ⌘K
       </kbd>
     </button>

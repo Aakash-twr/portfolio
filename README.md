@@ -251,7 +251,7 @@ Five runtime dependencies. Each had to justify its bytes.
 | `react`, `react-dom` | The application. React 19. |
 | `lucide-react` | Icons as tree-shaken React components — only the ~25 imported icons ship, and each is a small inline SVG. No icon font, no sprite sheet, no network request. |
 | `clsx` | ~500 bytes for conditional class joining. Deliberately **not** `tailwind-merge`: nothing here overrides utilities across component boundaries, so the extra ~4kB would buy nothing. |
-| `three` + `@react-three/fiber` | The 3D fleet viewer. Easily the heaviest thing here (~240kB gzipped), which is why it is behind a doubly-gated lazy boundary and never touches the initial load. It earns its place because 3D warehouse visualisation is real production work, and a live scene demonstrates that in a way a bullet point cannot. |
+| `three` + `@react-three/fiber` | The 3D fleet viewer. Easily the heaviest thing here (~246kB gzipped), which is why it is behind a doubly-gated lazy boundary and never touches the initial load. It earns its place because 3D warehouse visualisation is real production work, and a live scene demonstrates that in a way a bullet point cannot. Everything else the scene needs — orbit controls, the postprocessing chain — ships inside `three` itself. |
 
 Build-time only: `vite`, `@vitejs/plugin-react`, `typescript`, `tailwindcss` +
 `@tailwindcss/vite`, and the `@types/*` packages.
@@ -291,13 +291,13 @@ Build-time only: `vite`, `@vitejs/plugin-react`, `typescript`, `tailwindcss` +
 ### Bundle size
 
 ```
-initial (non-lazy)        333 KB raw  /  99 KB gzip
-  ├─ index.js             289 KB      /  90 KB   React 19 + app + icons
-  └─ index.css             44 KB      /   9 KB
+initial (non-lazy)        338 KB raw  / 100 KB gzip
+  ├─ index.js             293 KB      /  92 KB   React 19 + app + icons
+  └─ index.css             45 KB      /   9 KB
 lazy, below the fold       24 KB raw  /  10 KB gzip
   ├─ AgentPipelineDiagram, InterviewLoopDiagram, BlogSystemDiagram
   └─ FleetField (canvas; desktop only — never downloaded on mobile)
-lazy, gated              906 KB raw  / 240 KB gzip
+lazy, gated              932 KB raw  / 246 KB gzip
   └─ FleetViewer3D (three.js + R3F; desktop-on-view, or an explicit tap)
 ```
 
@@ -370,8 +370,10 @@ four times.
    which is the actual point about full-stack work.
 3. **3D fleet viewer** (React Three Fiber). A rebuilt, simplified warehouse with four
    autonomous units on live routes; selecting one — in the scene or the rail — surfaces its
-   telemetry. Clearly labelled as a demonstration with synthetic data, because the
-   production system and its data belong to Seven Robotics.
+   telemetry. A shader-patched procedural floor, instanced racks and pallets, HDR bloom on
+   the status beacons, and hand-projected DOM labels: see **Inside the 3D viewer** below.
+   Clearly labelled as a demonstration with synthetic data, because the production system
+   and its data belong to Seven Robotics.
 4. **Projects — architecture walkthroughs** (SVG). The LangGraph pipeline *plays*, stepping
    through its stages so the reader sees the fan-out/fan-in rather than reading the word
    "parallel". Prep AI is drawn as vertical **swimlanes**, because the interesting property
@@ -389,6 +391,104 @@ is in its patterns, and three boxes in a row would have been padding.
 
 All of them are keyboard-operable, carry prose `aria-label`s describing the architecture,
 and render complete-and-static under reduced motion.
+
+### Inside the 3D viewer
+
+The scene is the one place on this site where the interesting work is graphics work,
+so it is worth saying what it does rather than leaving it as "a Three.js demo".
+
+- **The floor grid is GLSL injected into `MeshStandardMaterial`** through
+  `onBeforeCompile`, not a `gridHelper` and not a standalone `ShaderMaterial`. Screen-space
+  derivatives (`fwidth`) hold every line at ~1px whether its cell fills the viewport or is
+  vanishing toward the horizon — which line geometry cannot do; it aliases into moiré at
+  grazing angles.
+
+  This was built the wrong way first, and the wrong way is instructive: the initial version
+  *was* a standalone `ShaderMaterial`, which meant reimplementing lighting, shadow sampling
+  and fog by hand. It didn't, so the floor rendered flat and the robots appeared to hover
+  with no contact shadows. Patching the standard material keeps three's entire lighting
+  pipeline and replaces only the albedo. `customProgramCacheKey` is set so three does not
+  hand back an unpatched program for another material with the same feature set.
+- **Racks and pallets are two `InstancedMesh` draw calls**, with per-instance matrices and
+  per-instance colours, rather than ~50 separate meshes. The pallet layout is derived from
+  the rack layout through a deterministic hash — never `Math.random()`, so the warehouse is
+  identical on every load and across both themes.
+- **Bloom is real HDR postprocessing.** An `EffectComposer` renders into a **half-float**
+  target so emissive values above 1.0 survive into the bloom pass instead of being clipped,
+  with `samples: 4` for MSAA (which the canvas `antialias` option cannot provide once
+  drawing goes through a render target) and an `OutputPass` applying tone mapping at the very
+  end of the chain — the only correct place for it. The beacons are `toneMapped={false}` at
+  `emissiveIntensity: 5` specifically so they are what the bloom threshold catches.
+
+  Bloom is **off in the light theme**. On a light ground there is nothing dark for a glow to
+  read against, so it only lifts the black point and washes the image out. The correct amount
+  of bloom there is none.
+- **Taking over the render loop.** A `useFrame` at priority 1 disables R3F's automatic
+  render, so the composer becomes the only thing putting pixels on screen — including in the
+  no-bloom branch, which falls through to a plain `gl.render`.
+- **The telemetry labels are DOM, projected by hand.** World positions are projected to
+  screen space every frame and written straight to `style.transform`. Text stays crisp at any
+  zoom (no texture atlas), and no React state is touched while they track. The projection runs
+  at priority 1 so it happens *after* every unit has moved that frame.
+- **Motion is damped, not snapped.** Headings ease toward the next waypoint and the chassis
+  banks into the turn, frame-rate independently via `MathUtils.damp`. The difference between
+  a box teleporting round a corner and a vehicle taking it.
+- **Every timestep is clamped, and the scene keeps its own clock.** Both are fixes for real
+  defects rather than precautions:
+
+  React Three Fiber computes the frame delta as `timestamp - clock.elapsedTime` while
+  `frameloop` is `"never"`, but `timestamp` is a requestAnimationFrame value in
+  *milliseconds* and `elapsedTime` is in *seconds*. Any `invalidate()` landing while the
+  section is scrolled away — a re-render from selection or quality state is enough — hands
+  the loop a delta of tens of thousands of seconds. OrbitControls scales its auto-rotation
+  by that value, so scrolling quickly past the section made the camera fling round. Clamping
+  every delta to 1/30s fixed it: measured as a **865px → 4px** reduction in the largest
+  single-frame movement of the projected labels across six scroll-away-and-return cycles.
+
+  Separately, R3F calls `clock.stop()`/`clock.start()` on every frameloop change, and
+  `Clock.start()` resets `elapsedTime` to zero — so units driven from absolute clock time
+  teleported back to their starting offsets each time the section left the viewport. The
+  scene now advances its own monotonic clock from clamped deltas instead.
+- **Input never waits on an animation.** The opening camera move is abandoned the moment the
+  viewer grabs the scene, via OrbitControls' `start` event. It used to hold
+  `controls.enabled = false` until it finished — and since clamping makes "finished" a matter
+  of frames rather than wall time, a device rendering at 3fps left the scene completely
+  uninteractive for about seventeen seconds.
+- **Wheel zoom is armed by a click, not always on.** OrbitControls calls `preventDefault()`
+  on wheel events it handles, so leaving zoom permanently enabled stops the *page* from
+  scrolling whenever the cursor happens to be over the viewer — a scroll trap in the middle
+  of a page someone is trying to read. Zoom now arms on pointer-down inside the scene and
+  disarms when the pointer leaves. Touch is exempt: a pinch needs two fingers, so it can
+  never be mistaken for a one-finger page scroll, and gating it would break the first pinch.
+- **Quality degrades in stages**: bloom first, then resolution, with a cooldown so it cannot
+  oscillate. Frames are the last thing to give up, because dropped frames are far more
+  noticeable than either. The sampling window is bounded by **time, not frame count** — a
+  50-frame window sounds equivalent, but on a device already rendering at 3fps it would take
+  seventeen seconds to decide anything, which is precisely when relief is most urgent.
+- **There is a live renderer readout** beside the scene: frames/s, draw calls, triangles,
+  pixel ratio, quality tier and whether effects are active. It is the only way to *show*
+  rather than assert that the scene is cheap, and it makes the staged degradation visible
+  as it happens. Two details make the numbers real rather than decorative: `info.autoReset`
+  is disabled (three resets its counters on every `render()`, and the composer issues several
+  per frame — left on, the panel would only ever report the last bloom pass), and the sampler
+  runs at priority 2 so it reads *after* the composer has drawn. Counters are snapshotted and
+  reset every frame; only the display is throttled to 4Hz. Values are written straight into
+  DOM nodes, so a per-frame readout costs no React renders.
+
+  Building it caught two bugs worth naming. The pixel-ratio row originally read R3F's
+  `viewport.dpr`, which disagreed with the renderer's actual pixel ratio — a readout that
+  contradicts reality is worse than none, so it now samples `gl.getPixelRatio()` directly.
+  And the panel is what exposed the frame-count sampling window above: under software
+  rendering it sat at 3fps with the quality tier still reading `high`, which is how the
+  window turned out to need ~17s to fire. With both fixed, the same environment degrades to
+  `low` within a second and recovers from 3fps to ~38.
+- **The opening move** eases from a wide establishing shot to the working camera and then
+  hands over to the controls entirely — skipped under reduced motion, which also parks the
+  units and disables auto-orbit.
+
+The scene reads its entire palette from the same CSS custom properties as the rest of the
+page (via a dedicated `--raw-scene-*` group, because a lit 3D scene needs a wider value range
+than a flat interface), so it retints with the theme rather than hard-coding hexes.
 
 ### Truthfulness
 
@@ -473,7 +573,22 @@ the 3D scene), at 1440 / 1280 / 1024 / 768 / 390 / 375 px in both themes:
 
 - `npm run build` succeeds with no warnings; `tsc` is clean under `strict`,
   `noUnusedLocals`, `noUnusedParameters` and `noUncheckedSideEffectImports`.
-- Zero console errors, warnings and failed requests at every breakpoint.
+- **Zero console errors and zero failed requests** at every breakpoint, in both themes,
+  with every lazy chunk mounted and the 3D scene running through a full
+  scroll-away-and-back cycle.
+- Two console **warnings** exist once the 3D section initialises, and neither originates in
+  this codebase:
+  - `THREE.Clock: This module has been deprecated` — emitted by
+    **`@react-three/fiber`'s own internals** (its event module constructs a `Clock`) against
+    three r185. Not reachable from application code; it will go away when R3F updates.
+  - `GPU stall due to ReadPixels` — a **SwiftShader** driver performance hint, seen only in
+    the software-rendered test environment and only while bloom is active. It is a hint, not
+    an error, and self-silences after two occurrences.
+
+  Worth noting how these were found: an earlier version of the audit script bucketed console
+  messages into hardcoded `error`/`warning` keys, but Puppeteer emits the type as `warn`.
+  Every warning fell through into an unprinted bucket and the run reported a clean sweep.
+  Bucketing by the raw type string surfaced them. A test that cannot fail is not a test.
 - No horizontal overflow at any breakpoint.
 - 24/24 automated interaction checks: ⌘K open/filter/arrow/Enter/Escape, focus movement
   and restoration, scroll lock and release, mobile sheet open/dismiss/Escape, skip link as
@@ -483,9 +598,17 @@ the 3D scene), at 1440 / 1280 / 1024 / 768 / 390 / 375 px in both themes:
 - Every text/surface colour pair clears WCAG AA in both themes.
 - No SVG diagram label renders below ~8px effective size at any breakpoint — measured as
   declared font size × rendered/viewBox scale, per diagram, per width.
-- The 3D scene mounts and draws (canvas has a live WebGL context), selection stays
-  synchronised between scene and telemetry rail, and the 906kB chunk is confirmed **not
-  requested** on a 390px viewport until the Launch button is pressed.
+- The 3D scene mounts and draws (canvas has a live WebGL context, verified in both themes),
+  the custom shader patch compiles with no GLSL errors, the four projected DOM labels track
+  and reduce to one on narrow viewports, selection stays synchronised between scene and
+  telemetry rail, and the 932kB chunk is confirmed **not requested** on a 390px viewport
+  until the Launch button is pressed.
+- 3D interaction is verified behaviourally, not by inspection: dragging orbits the camera
+  (337px of view movement against 4px of idle auto-rotate drift over the same wall time),
+  the wheel scrolls the page normally before the scene is clicked (800px, no trap), and
+  zooms without scrolling the page after it is (191px of view movement, 0px of page scroll).
+- No single frame moves the view more than ~4px across repeated fast scroll-away-and-return
+  cycles — the regression test for the delta-clamp fix, which measured 865px before it.
 
 The scripts behind these checks were throwaway, run outside the project so they add no
 dependencies to it. They are described here because the claims should be reproducible, not

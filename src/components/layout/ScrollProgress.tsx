@@ -2,7 +2,11 @@ import { useEffect, useRef } from 'react';
 import { useMediaQuery } from '@/hooks';
 
 /**
- * Reading-progress hairline under the header.
+ * Reading-progress hairline along the top edge of the viewport.
+ *
+ * It sits on the viewport edge rather than under the header because the header
+ * is a floating capsule with rounded ends — there is no straight edge inside it
+ * for a full-width bar to sit against.
  *
  * Written against rAF-coalesced scroll events that mutate a transform directly
  * rather than React state: progress changes on every scroll frame, and running a
@@ -45,7 +49,7 @@ export function ScrollProgress() {
   if (reduceMotion) return null;
 
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px">
+    <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-50 h-px">
       <div
         ref={barRef}
         className="h-full w-full origin-left scale-x-0 bg-accent"
